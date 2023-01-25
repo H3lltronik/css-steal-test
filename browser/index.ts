@@ -1,47 +1,58 @@
 import { createApp } from 'vue';
-import type { ParsedStyleSheet } from '../types';
 import App from './components/App.vue'
+import { enableHover, loadStylesheets } from './lib';
+import { store } from './store';
 
-const el = document.createElement("div");
-el.setAttribute("id", "h3-browser-app");
-document.body.appendChild(el);
+const h3El = document.createElement("div");
+h3El.setAttribute("id", "h3-browser-app");
+document.body.appendChild(h3El);
+
+const h3Box = document.createElement("div");
+h3Box.setAttribute("id", "h3-box");
+document.body.appendChild(h3Box);
+
+
 
 const app = createApp(App);
 // app.use(router);
-// app.use(store);
+app.use(store);
 app.mount('#h3-browser-app');
 
 
-var css = require('css');
 
 (async function () {
-    const stylesheetsLinks = Array.from(document.querySelectorAll("link[rel='stylesheet']")).map(el => el.getAttribute('href'));
-    const stylesheets: ParsedStyleSheet[] = [];
+    const styles = await loadStylesheets();
+    enableHover();
 
-    for (const stylesheetLink of stylesheetsLinks) {
-        if (!stylesheetLink) continue
+    console.log("styles", styles);
+    store.commit('setStyles', styles);
+    Array.from(document.querySelectorAll("body *")).forEach(el => {
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const element = e.target as HTMLElement;
+            const matches = {};
+            let allStyles = [];
 
-        let response = await fetch(stylesheetLink)
-        let text = await response.text();
-        stylesheets.push(css.parse(text))
-    }
-
-    console.log("stylesheets", stylesheets)
-
-    const reduced = stylesheets[2].stylesheet.rules.reduce((acc, rule) => {
-        if (rule.type === 'rule') {
-            const declarations = rule.declarations?.map(declaration => `${declaration.property}: ${declaration.value}`)
-            rule.selectors?.forEach(selector => {
-                if (selector) {
-                    // Object.defineProperty(acc, selector, { value: declarations, writable: false, configurable: false })
-                    // @ts-ignore:next-line
-                    acc[selector] = declarations;
+            for (const [selector, style] of Object.entries(styles)) {
+                try {
+                    if ( Array.from(document.querySelectorAll(selector)).find(el => el === element ) ) {
+                        // @ts-ignore:next-line
+                        matches['Element'] = style;
+                        allStyles.push(style);
+                        console.log("style", selector, style)
+                        // matches[selector] = style;
+                    }
+                } catch (error) {
+                    // console.warn(`Not a valid selector: ${selector}`)
                 }
-            })
-        }
-        return acc
-    }, {});
+            }
+            
+            allStyles = allStyles.flat();
+            // @ts-ignore:next-line
+            matches['Element'] = allStyles;
+            console.log("allStyles", allStyles)
+            store.commit('setMatchingStyles', matches);
+        });
+    })
 
-    console.log("reduced", reduced)
-    
-})()
+})();

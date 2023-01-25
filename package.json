@@ -28,6 +28,8 @@
   "dependencies": {
     "browserify-fs": "^1.0.0",
     "css": "^3.0.0",
+    "cssbeautify": "^0.3.1",
+    "highlight.js": "^11.6.0",
     "path-browserify": "^1.0.1",
     "stream-browserify": "^3.0.0",
     "vue": "^3.2.45",
